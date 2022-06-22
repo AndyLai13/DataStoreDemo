@@ -3,6 +3,7 @@ package com.andylai.myapplication
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -10,11 +11,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
 val Context.myPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -28,28 +28,48 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         findViewById<Button>(R.id.setBoolean).setOnClickListener {
-            GlobalScope.launch {
+            lifecycleScope.launch {
                 setBoolean()
             }
         }
 
         findViewById<Button>(R.id.getBoolean).setOnClickListener {
-            GlobalScope.launch(Dispatchers.Main) {
+            lifecycleScope.launch {
                 (it as Button).text = getBoolean().toString()
             }
         }
 
         findViewById<Button>(R.id.setInt).setOnClickListener {
-            GlobalScope.launch {
+            lifecycleScope.launch {
                 setInt()
             }
         }
 
         findViewById<Button>(R.id.getInt).setOnClickListener {
-            GlobalScope.launch(Dispatchers.Main) {
+            lifecycleScope.launch {
                 (it as Button).text = getInt().toString()
             }
         }
+
+        findViewById<Button>(R.id.getAsync).setOnClickListener {
+            lifecycleScope.launch {
+                val startTime = System.currentTimeMillis()
+                val a = lifecycleScope.async { getDataDeferred1Second() }
+                val b = lifecycleScope.async { getDataDeferred2Seconds() }
+                val sum = a.await() + b.await()
+                Log.d("Andy", "sum = $sum, elapsed time: ${System.currentTimeMillis() - startTime}")
+                (it as Button).text = sum.toString()
+            }
+        }
+    }
+
+    private suspend fun getDataDeferred1Second(): Int {
+        delay(1000)
+        return 1
+    }
+    private suspend fun getDataDeferred2Seconds(): Int {
+        delay(2000)
+        return 2
     }
 
     suspend fun setBoolean() {
@@ -75,4 +95,6 @@ class MainActivity : AppCompatActivity() {
             it[keyInt] ?: -1
         }.first()
     }
+
+
 }
